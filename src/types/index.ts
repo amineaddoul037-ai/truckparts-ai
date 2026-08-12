@@ -1,150 +1,169 @@
-/**
- * TruckParts AI - Core Type Definitions
- */
-
+// Data Models
 export interface Manufacturer {
   id: string;
   name: string;
   logo?: string;
   country?: string;
-  description?: string;
+  verified: boolean;
 }
 
 export interface TruckModel {
   id: string;
   manufacturerId: string;
+  manufacturer: Manufacturer;
   name: string;
-  productionStart?: number;
-  productionEnd?: number;
-  description?: string;
-}
-
-export interface Generation {
-  id: string;
-  modelId: string;
-  name: string;
+  generation?: string;
   startYear?: number;
   endYear?: number;
+  weight?: number;
+  dimensions?: {
+    length: number;
+    width: number;
+    height: number;
+  };
+  verified: boolean;
 }
 
 export interface Engine {
   id: string;
-  generationId: string;
-  type: string;
-  displacement?: string;
-  power?: string;
-  torque?: string;
-  fuel?: string;
+  manufacturerId: string;
+  manufacturer: Manufacturer;
+  name: string;
+  type: 'Diesel' | 'Petrol' | 'Natural Gas' | 'Electric' | 'Hybrid';
+  power?: number; // kW
+  torque?: number; // Nm
+  displacement?: number; // cc
+  year?: number;
+  verified: boolean;
 }
 
 export interface System {
   id: string;
-  name: string;
-  category: 'engine' | 'transmission' | 'suspension' | 'brake' | 'electrical' | 'cooling' | 'other';
+  name: string; // Cooling, Brake, Electrical, Transmission, etc.
   description?: string;
 }
 
 export interface Part {
   id: string;
-  systemId: string;
   name: string;
   description?: string;
   category: string;
+  oem?: string;
+  manufacturerId?: string;
+  manufacturer?: Manufacturer;
+  systemId?: string;
+  system?: System;
   specifications?: Record<string, string>;
+  verified: VerificationStatus;
   images: PartImage[];
-  oemReferences: OEMReference[];
   crossReferences: CrossReference[];
-  compatibility: Compatibility[];
+  compatibilities: Compatibility[];
   sources: Source[];
-  verificationStatus: 'verified' | 'cross-checked' | 'needs-verification';
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface OEMReference {
+  id: string;
+  partId: string;
+  part: Part;
+  oem: string;
+  manufacturer: string;
+  verified: boolean;
+}
+
+export interface CrossReference {
+  id: string;
+  sourcePartId: string;
+  sourcePart: Part;
+  targetPartId: string;
+  targetPart: Part;
+  type: 'equivalent' | 'substitute' | 'upgrade' | 'downgrade';
+  notes?: string;
+  verified: boolean;
+}
+
+export interface Compatibility {
+  id: string;
+  partId: string;
+  part: Part;
+  truckModelId: string;
+  truckModel: TruckModel;
+  engineId?: string;
+  engine?: Engine;
+  startYear?: number;
+  endYear?: number;
+  notes?: string;
+  verified: VerificationStatus;
 }
 
 export interface PartImage {
   id: string;
   partId: string;
   url: string;
-  title?: string;
-  alt?: string;
-  isPrimary: boolean;
-  source?: string;
-}
-
-export interface OEMReference {
-  id: string;
-  partId: string;
-  manufacturerId: string;
-  referenceNumber: string;
-  alternateNumbers?: string[];
-  verificationStatus: 'verified' | 'unverified';
-  source?: string;
-}
-
-export interface CrossReference {
-  id: string;
-  partId: string;
-  referencedPartId: string;
-  relationshipType: 'compatible' | 'compatible-with-modification' | 'upgrade' | 'downgrade' | 'substitute';
-  notes?: string;
-}
-
-export interface Compatibility {
-  id: string;
-  partId: string;
-  generationId: string;
-  engineId?: string;
-  notes?: string;
+  alt: string;
+  sourceUrl?: string;
+  license?: string; // CC, Commercial, Proprietary, Public Domain
+  attribution?: string;
+  uploaded: boolean;
   verified: boolean;
 }
 
 export interface Source {
   id: string;
-  partId: string;
+  partId?: string;
   name: string;
   url?: string;
-  type: 'official' | 'parts-catalog' | 'forum' | 'documentation' | 'other';
-  reliability: 'high' | 'medium' | 'low';
+  type: 'manufacturer' | 'documentation' | 'api' | 'user' | 'other';
+  verified: boolean;
+}
+
+export type VerificationStatus = 'VERIFIED' | 'CROSS-CHECKED' | 'NEEDS_VERIFICATION' | 'DEMO_DATA';
+
+// UI State
+export interface SearchFilters {
+  query: string;
+  category?: string;
+  manufacturer?: string;
+  truckModel?: string;
+  engine?: string;
+  crossReference?: string;
+  verified?: VerificationStatus;
+  sortBy?: 'relevance' | 'name' | 'newest' | 'popularity';
+  page?: number;
+  perPage?: number;
 }
 
 export interface SearchResult {
-  type: 'part' | 'truck' | 'manual';
-  id: string;
-  title: string;
-  description?: string;
-  image?: string;
-  relevance: number;
+  parts: Part[];
+  trucks: TruckModel[];
+  engines: Engine[];
+  total: number;
+  page: number;
+  perPage: number;
 }
 
-export interface Favorite {
-  id: string;
-  userId: string;
-  partId: string;
-  createdAt: string;
+export interface ImageAnalysisResult {
+  success: boolean;
+  matchedParts?: Part[];
+  confidence?: number;
+  error?: string;
 }
 
-export interface SearchHistoryItem {
-  id: string;
-  userId: string;
-  query: string;
-  type: 'text' | 'image' | 'filter';
-  timestamp: string;
+// User Features
+export interface UserPreferences {
+  language: 'en' | 'fr' | 'ar';
+  theme?: 'light' | 'dark';
+  favorites: string[]; // Part IDs
+  recentlyViewed: string[];
+  savedTrucks: string[];
+  searchHistory: string[];
 }
 
-export interface AIQuery {
-  question: string;
-  context?: {
-    manufacturerId?: string;
-    modelId?: string;
-    generationId?: string;
-    engineId?: string;
-  };
-}
-
-export interface AIResponse {
-  answer: string;
-  sources: Source[];
-  verified: boolean;
-  confidence: number;
-  suggestions?: Part[];
+// API
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
 }
