@@ -1,28 +1,24 @@
 'use client';
 
 import { AlertCircle } from 'lucide-react';
+import { useAppStore } from '@/store';
+import { getTranslation } from '@/data/translations';
 
 interface ErrorStateProps {
   message?: string;
-  retry?: () => void;
 }
 
-export default function ErrorState({
-  message = 'An error occurred. Please try again.',
-  retry,
-}: ErrorStateProps) {
+export default function ErrorState({ message }: ErrorStateProps) {
+  const { language } = useAppStore();
+  const t = (key: string) => getTranslation(key, language);
+
   return (
-    <div className="flex flex-col items-center justify-center py-12 bg-red-50 rounded-lg border border-red-200 p-6">
-      <AlertCircle className="text-red-600 mb-4" size={32} />
-      <p className="text-red-800 font-medium mb-4">{message}</p>
-      {retry && (
-        <button
-          onClick={retry}
-          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
-        >
-          Try Again
-        </button>
-      )}
+    <div className="bg-red-50 border border-red-200 rounded-lg p-6 flex items-start gap-4">
+      <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={24} />
+      <div>
+        <h3 className="font-semibold text-red-900 mb-1">Error</h3>
+        <p className="text-red-800">{message || t('common.error')}</p>
+      </div>
     </div>
   );
 }

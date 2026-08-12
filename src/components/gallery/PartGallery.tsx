@@ -1,118 +1,65 @@
 'use client';
 
-import { PartImage as PartImageType } from '@/types';
-import Image from 'next/image';
-import { useState } from 'react';
-import { ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useAppStore } from '@/store';
+import { getTranslation } from '@/data/translations';
+import PartCard from '@/components/catalog/PartCard';
+import { Part, PartImage } from '@/types/catalog';
+import { getPartImages } from '@/utils/catalog';
+import { Loader } from 'lucide-react';
 
 interface PartGalleryProps {
-  images: PartImageType[];
-  partName: string;
+  parts: Part[];
+  loading?: boolean;
+  emptyMessage?: string;
+  showCategory?: boolean;
 }
 
-export default function PartGallery({ images, partName }: PartGalleryProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isZoomed, setIsZoomed] = useState(false);
+export default function PartGallery({
+  parts,
+  loading = false,
+  emptyMessage,
+  showCategory = true,
+}: PartGalleryProps) {
+  const { language } = useAppStore();
+  const t = (key: string) => getTranslation(key, language);
+  const [imagesMap, setImagesMap] = useState<Record<string, PartImage>>({});
 
-  if (!images || images.length === 0) {
+  useEffect(() => {
+    const map: Record<string, PartImage> = {};
+    parts.forEach((part) => {
+      const image = getPartImages(part.id)[0];
+      if (image) {
+        map[part.id] = image;
+      }
+    });
+    setImagesMap(map);
+  }, [parts]);
+
+  if (loading) {
     return (
-      <div className="w-full bg-gray-100 rounded-lg flex items-center justify-center h-96">
-        <div className="text-center">
-          <div className="text-6xl mb-4">📷</div>
-          <p className="text-gray-600">No images available</p>
-        </div>
+      <div className="flex justify-center items-center py-16">
+        <Loader className="animate-spin text-blue-600" size={32} />
       </div>
     );
   }
 
-  const currentImage = images[currentIndex];
-
-  const handlePrev = () => {
-    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
-  };
-
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % images.length);
-  };
+  if (parts.length === 0) {
+    return (
+      <div className="py-16 text-center">
+        <p className="text-gray-600">{emptyMessage || t('common.noResults')}</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      {/* Main Image */}
-      <div className={`relative bg-gray-100 rounded-lg overflow-hidden ${isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}>
-        <div className="relative w-full h-96">
-          <Image
-            src={currentImage.url}
-            alt={currentImage.alt || partName}
-            fill
-            className="object-contain"
-            priority
-          />
-        </div>
-
-        {/* Navigation Buttons */}
-        {images.length > 1 && (
-          <>
-            <button
-              onClick={handlePrev}
-              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/75 text-white p-2 rounded-full transition"
-              aria-label="Previous image"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <button
-              onClick={handleNext}
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/75 text-white p-2 rounded-full transition"
-              aria-label="Next image"
-            >
-              <ChevronRight size={20} />
-            </button>
-          </>
-        )}
-
-        {/* Zoom Button */}
-        <button
-          onClick={() => setIsZoomed(!isZoomed)}
-          className="absolute top-2 right-2 bg-black/50 hover:bg-black/75 text-white p-2 rounded-full transition"
-          aria-label="Toggle zoom"
-        >
-          <ZoomIn size={20} />
-        </button>
-
-        {/* Image Counter */}
-        {images.length > 1 && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-            {currentIndex + 1} / {images.length}
-          </div>
-        )}
-      </div>
-
-      {/* Thumbnail Gallery */}
-      {images.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {images.map((image, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentIndex(index)}
-              className={`relative flex-shrink-0 w-20 h-20 rounded border-2 transition ${
-                index === currentIndex ? 'border-blue-600' : 'border-gray-300'
-              }`}
-              aria-label={`View image ${index + 1}`}
-            >
-              <Image
-                src={image.url}
-                alt={`Thumbnail ${index + 1}`}
-                fill
-                className="object-cover rounded"
-              />
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Image Info */}
-      {currentImage.source && (
-        <p className="text-xs text-gray-500">Source: {currentImage.source}</p>
-      )}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {parts.map((part) => (
+        <Link key={part.id} href={`/parts/${part.id}`}>
+          <PartCard part={part} image={imagesMap[part.id]} showCategory={showCategory} />
+        </Link>
+      ))}
     </div>
   );
 }
